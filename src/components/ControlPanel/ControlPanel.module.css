@@ -1,0 +1,62 @@
+.controlRow {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.speedRow {
+  margin-bottom: 12px;
+}
+
+.speedButtons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.speedButtons .btn {
+  padding: 7px 0;
+  text-align: center;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.stats b {
+  color: var(--text);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.brushRow {
+  margin-bottom: 12px;
+}
+.brushRow label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.clearRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.clearRow .btn:last-child {
+  grid-column: 1 / -1;
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Два источника питания",
+  "description": "Стартовая область и два источника. Система стремится соединить старт с обоими источниками, формируя ветвящуюся сеть.",
+  "config": {
+    "gridWidth": 170,
+    "gridHeight": 130,
+    "cellSize": 5,
+    "particleCount": 2600,
+    "particleSpeed": 1.2,
+    "sensorDistance": 7,
+    "sensorAngleDegrees": 50,
+    "turnAngleDegrees": 22.5,
+    "trailDepositAmount": 7,
+    "trailEvaporationRate": 0.015,
+    "trailDiffusionRate": 0.2,
+    "trailMaxValue": 255,
+    "foodAttractionStrength": 170,
+    "foodAttractionRadius": 22,
+    "simulationSpeed": 1,
+    "randomSeed": 7,
+    "trailThresholdForPath": 32,
+    "stuckParticleRespawnTicks": 80
+  },
+  "startArea": { "x": 25, "y": 65, "radius": 8 },
+  "foodSources": [
+    {
+      "id": "food-1",
+      "x": 145,
+      "y": 30,
+      "radius": 6,
+      "strength": 200,
+      "label": "Food A",
+      "enabled": true
+    },
+    {
+      "id": "food-2",
+      "x": 145,
+      "y": 100,
+      "radius": 6,
+      "strength": 200,
+      "label": "Food B",
+      "enabled": true
+    }
+  ],
+  "walls": [
+    { "x": 80, "y": 55, "width": 3, "height": 20 }
+  ]
+}

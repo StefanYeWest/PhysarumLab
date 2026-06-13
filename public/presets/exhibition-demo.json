@@ -1,0 +1,41 @@
+{
+  "name": "Выставочная демонстрация",
+  "description": "Сценарий для выставочной демонстрации поиска пути в лабиринте и перестройки маршрута после добавления препятствия.",
+  "config": {
+    "gridWidth": 180,
+    "gridHeight": 120,
+    "cellSize": 5,
+    "particleCount": 2500,
+    "particleSpeed": 1.2,
+    "sensorDistance": 7,
+    "sensorAngleDegrees": 45,
+    "turnAngleDegrees": 22.5,
+    "trailDepositAmount": 7,
+    "trailEvaporationRate": 0.015,
+    "trailDiffusionRate": 0.18,
+    "trailMaxValue": 255,
+    "foodAttractionStrength": 180,
+    "foodAttractionRadius": 20,
+    "simulationSpeed": 1,
+    "randomSeed": 42,
+    "trailThresholdForPath": 35,
+    "stuckParticleRespawnTicks": 80
+  },
+  "startArea": { "x": 15, "y": 60, "radius": 8 },
+  "foodSources": [
+    {
+      "id": "food-1",
+      "x": 160,
+      "y": 60,
+      "radius": 6,
+      "strength": 200,
+      "label": "Food A",
+      "enabled": true
+    }
+  ],
+  "walls": [
+    { "x": 40, "y": 0, "width": 3, "height": 85 },
+    { "x": 75, "y": 35, "width": 3, "height": 85 },
+    { "x": 110, "y": 0, "width": 3, "height": 85 }
+  ]
+}

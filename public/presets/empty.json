@@ -1,0 +1,37 @@
+{
+  "name": "Пустое поле",
+  "description": "Открытая среда без препятствий. Демонстрирует, как сеть Physarum соединяет старт и источник питания по прямой.",
+  "config": {
+    "gridWidth": 160,
+    "gridHeight": 110,
+    "cellSize": 5,
+    "particleCount": 2000,
+    "particleSpeed": 1.2,
+    "sensorDistance": 7,
+    "sensorAngleDegrees": 45,
+    "turnAngleDegrees": 22.5,
+    "trailDepositAmount": 7,
+    "trailEvaporationRate": 0.02,
+    "trailDiffusionRate": 0.18,
+    "trailMaxValue": 255,
+    "foodAttractionStrength": 160,
+    "foodAttractionRadius": 22,
+    "simulationSpeed": 1,
+    "randomSeed": 42,
+    "trailThresholdForPath": 30,
+    "stuckParticleRespawnTicks": 80
+  },
+  "startArea": { "x": 20, "y": 55, "radius": 8 },
+  "foodSources": [
+    {
+      "id": "food-1",
+      "x": 140,
+      "y": 55,
+      "radius": 6,
+      "strength": 200,
+      "label": "Food A",
+      "enabled": true
+    }
+  ],
+  "walls": []
+}

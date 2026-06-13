@@ -1,0 +1,42 @@
+{
+  "name": "Динамическое препятствие",
+  "description": "Сценарий для демонстрации перестройки маршрута. Дождитесь устойчивого пути и нажмите «Добавить препятствие на маршрут».",
+  "config": {
+    "gridWidth": 180,
+    "gridHeight": 110,
+    "cellSize": 5,
+    "particleCount": 2600,
+    "particleSpeed": 1.2,
+    "sensorDistance": 7,
+    "sensorAngleDegrees": 45,
+    "turnAngleDegrees": 22.5,
+    "trailDepositAmount": 8,
+    "trailEvaporationRate": 0.016,
+    "trailDiffusionRate": 0.18,
+    "trailMaxValue": 255,
+    "foodAttractionStrength": 180,
+    "foodAttractionRadius": 20,
+    "simulationSpeed": 1,
+    "randomSeed": 123,
+    "trailThresholdForPath": 35,
+    "stuckParticleRespawnTicks": 80
+  },
+  "startArea": { "x": 18, "y": 55, "radius": 8 },
+  "foodSources": [
+    {
+      "id": "food-1",
+      "x": 162,
+      "y": 55,
+      "radius": 6,
+      "strength": 200,
+      "label": "Food A",
+      "enabled": true
+    }
+  ],
+  "walls": [
+    { "x": 60, "y": 0, "width": 3, "height": 35 },
+    { "x": 60, "y": 75, "width": 3, "height": 35 },
+    { "x": 110, "y": 0, "width": 3, "height": 35 },
+    { "x": 110, "y": 75, "width": 3, "height": 35 }
+  ]
+}

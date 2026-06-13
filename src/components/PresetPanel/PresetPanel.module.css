@@ -1,0 +1,76 @@
+.presetRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.currentPreset {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.foodTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 14px 0 8px;
+}
+
+.empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.foodList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.foodItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.foodSelected {
+  border-color: var(--accent);
+}
+
+.foodLabel {
+  background: none;
+  border: none;
+  color: var(--food);
+  font-weight: 600;
+  text-align: left;
+  font-size: 13px;
+  padding: 0;
+}
+
+.foodToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.foodRemove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 0 4px;
+}
+.foodRemove:hover {
+  color: var(--danger);
+}
