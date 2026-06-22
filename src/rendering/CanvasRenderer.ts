@@ -136,7 +136,15 @@ export class CanvasRenderer {
     if (!this.imageData) return;
     const data = this.imageData.data;
     const trail = world.trail;
-    const maxValue = config.trailMaxValue;
+
+    // Авто-масштаб яркости: нормируем по текущему максимуму следа, а не по
+    // абсолютному пределу. Так тепловая карта остаётся яркой при любых
+    // параметрах испарения/депозита. Нижний порог не даёт «вспыхивать» шуму.
+    let peak = 0;
+    for (let i = 0; i < trail.length; i++) {
+      if (trail[i] > peak) peak = trail[i];
+    }
+    const maxValue = Math.max(peak, 24);
 
     for (let i = 0; i < trail.length; i++) {
       const v = trail[i];

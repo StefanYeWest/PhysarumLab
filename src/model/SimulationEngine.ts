@@ -46,6 +46,7 @@ export class SimulationEngine {
   // Состояние метрик во времени.
   private firstFoodFoundTick: number | null = null;
   private recoveryActive = false;
+  private recoveryBroken = false;
   private recoveryStartTick = 0;
   private recoveryFoodId: string | null = null;
   private recoveryTimeTicks: number | null = null;
@@ -76,8 +77,9 @@ export class SimulationEngine {
     this.running = false;
   }
 
-  /** Выполняет ровно один тик (FR-022). */
+  /** Выполняет ровно один тик (FR-022). Пошаговый режим всегда на паузе. */
   step(): void {
+    this.running = false;
     this.tick();
     this.updateMetrics(true);
   }
@@ -89,6 +91,29 @@ export class SimulationEngine {
     } else {
       this.rebuildWorld();
     }
+  }
+
+  /**
+   * Перезапуск роста: возвращает все частицы в стартовую область и очищает
+   * след, но СОХРАНЯЕТ текущую карту (стены, еду, старт) и параметры. В отличие
+   * от reset(), не перезагружает сценарий и не стирает пользовательские правки.
+   * Состояние запуска (running) сохраняется. Воспроизводимо по seed.
+   */
+  restartParticles(): void {
+    this.rng = new SeededRandom(this.config.randomSeed);
+    this.initParticles();
+    this.world.clearTrail();
+    this.tickNumber = 0;
+    this.tickAccumulator = 0;
+    this.firstFoodFoundTick = null;
+    this.recoveryActive = false;
+    this.recoveryBroken = false;
+    this.recoveryTimeTicks = null;
+    this.aStarResult = null;
+    this.physarumResult = null;
+    this.history = [];
+    this.metrics = this.emptyMetrics();
+    this.updateMetrics(true);
   }
 
   /** Загрузка preset-сценария (FR-041). */
@@ -125,6 +150,7 @@ export class SimulationEngine {
     this.tickAccumulator = 0;
     this.firstFoodFoundTick = null;
     this.recoveryActive = false;
+    this.recoveryBroken = false;
     this.recoveryTimeTicks = null;
     this.aStarResult = null;
     this.physarumResult = null;
@@ -250,9 +276,17 @@ export class SimulationEngine {
     const connectedFood = analyzer.countConnectedFood(world, config);
 
     // Проверка восстановления маршрута после препятствия (FR-103).
+    // Сначала дожидаемся фактического разрыва сети (connected = false),
+    // и только потом измеряем время до повторного соединения. Это
+    // исключает «нулевое» восстановление, когда сеть не была разорвана.
     if (this.recoveryActive && this.recoveryFoodId) {
       const food = world.foodSources.find((f) => f.id === this.recoveryFoodId);
-      if (food && analyzer.isConnectedToFood(world, config, food)) {
+      const connected = food
+        ? analyzer.isConnectedToFood(world, config, food)
+        : false;
+      if (!this.recoveryBroken) {
+        if (!connected) this.recoveryBroken = true;
+      } else if (connected) {
         this.recoveryTimeTicks = this.tickNumber - this.recoveryStartTick;
         this.recoveryActive = false;
       }
@@ -393,7 +427,7 @@ export class SimulationEngine {
     const perpX = -dirY / len;
     const perpY = dirX / len;
 
-    const halfLength = 9;
+    const halfLength = 10;
     const thickness = 2;
     for (let t = -halfLength; t <= halfLength; t++) {
       for (let s = -thickness; s <= thickness; s++) {
@@ -402,24 +436,25 @@ export class SimulationEngine {
         this.world.addWall(x, y);
       }
     }
+    // Стена могла перекрыть клетки старта/еды — восстановим их метки.
+    this.world.refreshFoodCellTypes();
 
-    // Очищаем след вокруг препятствия, чтобы маршрут гарантированно нарушился.
-    this.world.clearTrailInRect(
-      Math.round(mid.x - halfLength),
-      Math.round(mid.y - halfLength),
-      halfLength * 2,
-      halfLength * 2,
-    );
+    // Сбрасываем весь след: связность определяется по доле маршрута на следе,
+    // поэтому локальный разрыв не нарушил бы её (широкий след даёт мгновенный
+    // обход). Полный сброс делает замер восстановления осмысленным и
+    // наглядным — сеть отрастает заново уже в обход новой стены (FR-100..103).
+    this.world.clearTrail();
 
-    // Перестраиваем A* и запускаем замер восстановления.
     const food = this.resolveFood();
     if (food) {
+      // Перестраиваем A* (эталонный обход) и запускаем замер восстановления.
       this.aStarResult = this.analyzer.buildAStarPath(
         this.world,
         food,
         this.neighborhood,
       );
       this.recoveryActive = true;
+      this.recoveryBroken = false;
       this.recoveryStartTick = this.tickNumber;
       this.recoveryFoodId = food.id;
       this.recoveryTimeTicks = null;

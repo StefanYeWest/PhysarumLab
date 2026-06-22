@@ -1,0 +1,44 @@
+{
+  "name": "Сложный лабиринт",
+  "description": "Плотный серпантинный лабиринт из шести перегородок с узкими проходами, попеременно сверху и снизу. Длинный извилистый маршрут (эталон A* ~420 клеток, шесть поворотов) — серьёзная проверка способности сети находить путь.",
+  "config": {
+    "gridWidth": 180,
+    "gridHeight": 120,
+    "cellSize": 5,
+    "particleCount": 4500,
+    "particleSpeed": 1.2,
+    "sensorDistance": 9,
+    "sensorAngleDegrees": 45,
+    "turnAngleDegrees": 22.5,
+    "trailDepositAmount": 5,
+    "trailEvaporationRate": 0.04,
+    "trailDiffusionRate": 0.18,
+    "trailMaxValue": 255,
+    "foodAttractionStrength": 190,
+    "foodAttractionRadius": 30,
+    "simulationSpeed": 1,
+    "randomSeed": 42,
+    "trailThresholdForPath": 18,
+    "stuckParticleRespawnTicks": 80
+  },
+  "startArea": { "x": 12, "y": 60, "radius": 7 },
+  "foodSources": [
+    {
+      "id": "food-1",
+      "x": 168,
+      "y": 60,
+      "radius": 6,
+      "strength": 200,
+      "label": "Food A",
+      "enabled": true
+    }
+  ],
+  "walls": [
+    { "x": 25, "y": 0, "width": 3, "height": 88 },
+    { "x": 47, "y": 32, "width": 3, "height": 88 },
+    { "x": 69, "y": 0, "width": 3, "height": 88 },
+    { "x": 91, "y": 32, "width": 3, "height": 88 },
+    { "x": 113, "y": 0, "width": 3, "height": 88 },
+    { "x": 135, "y": 32, "width": 3, "height": 88 }
+  ]
+}

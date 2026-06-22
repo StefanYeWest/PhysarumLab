@@ -12,8 +12,12 @@ interface Props {
   actions: SimulationActions;
 }
 
+const DEFAULT_PRESET_ID =
+  PRESET_ENTRIES.find((p) => p.id === 'exhibition-demo')?.id ??
+  PRESET_ENTRIES[0].id;
+
 export function PresetPanel({ ui, actions }: Props) {
-  const [selected, setSelected] = useState<string>(PRESET_ENTRIES[4].id);
+  const [selected, setSelected] = useState<string>(DEFAULT_PRESET_ID);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const handleLoad = () => {

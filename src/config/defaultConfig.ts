@@ -9,24 +9,24 @@ export const DEFAULT_CONFIG: SimulationConfig = {
   gridHeight: 120,
   cellSize: 5,
 
-  particleCount: 2500,
+  particleCount: 2800,
   particleSpeed: 1.2,
-  sensorDistance: 7,
+  sensorDistance: 9,
   sensorAngleDegrees: 45,
   turnAngleDegrees: 22.5,
 
-  trailDepositAmount: 7,
-  trailEvaporationRate: 0.015,
+  trailDepositAmount: 5,
+  trailEvaporationRate: 0.04,
   trailDiffusionRate: 0.18,
   trailMaxValue: 255,
 
   foodAttractionStrength: 180,
-  foodAttractionRadius: 20,
+  foodAttractionRadius: 24,
 
   simulationSpeed: 1,
   randomSeed: 42,
 
-  trailThresholdForPath: 35,
+  trailThresholdForPath: 18,
   stuckParticleRespawnTicks: 80,
 };
 
@@ -53,7 +53,7 @@ export const PARAM_META: ParamMeta[] = [
     label: 'Количество частиц',
     unit: 'шт',
     min: 100,
-    max: 5000,
+    max: 30000,
     step: 100,
     liveEditable: false,
     tooltip:

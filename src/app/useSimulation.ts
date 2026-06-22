@@ -189,6 +189,18 @@ export function useSimulation() {
     syncUi({ message: null, inspected: null });
   }, [engine, syncUi]);
 
+  /** Вернуть частицы в старт и перезапустить рост, сохранив карту и параметры. */
+  const restartParticles = useCallback(() => {
+    engine.restartParticles();
+    syncUi({
+      message: {
+        kind: 'info',
+        text: 'Частицы возвращены в старт. Карта и параметры сохранены.',
+      },
+      inspected: null,
+    });
+  }, [engine, syncUi]);
+
   const setSpeed = useCallback(
     (speed: number) => {
       speedRef.current = speed;
@@ -289,7 +301,12 @@ export function useSimulation() {
   );
 
   const resetParams = useCallback(() => {
-    engine.applyLiveConfig({ ...DEFAULT_CONFIG });
+    // Сбрасываем параметры модели к значениям по умолчанию, но сохраняем
+    // геометрию текущего сценария (размер сетки и клетки), иначе мир и
+    // конфиг рассинхронизируются.
+    const { gridWidth, gridHeight, cellSize } = engine.config;
+    engine.applyLiveConfig({ ...DEFAULT_CONFIG, gridWidth, gridHeight, cellSize });
+    engine.setSeed(DEFAULT_CONFIG.randomSeed);
     engine.setParticleCount(DEFAULT_CONFIG.particleCount);
     syncUi({ message: { kind: 'info', text: 'Параметры сброшены к значениям по умолчанию.' } });
   }, [engine, syncUi]);
@@ -478,6 +495,7 @@ export function useSimulation() {
       pause,
       step,
       reset,
+      restartParticles,
       setSpeed,
       loadPresetById,
       importPreset,
@@ -505,6 +523,7 @@ export function useSimulation() {
       pause,
       step,
       reset,
+      restartParticles,
       setSpeed,
       loadPresetById,
       importPreset,

@@ -128,6 +128,9 @@ export class WorldGrid {
         }
       }
     }
+    // После стирания восстанавливаем метки старта/еды, которые могли
+    // оказаться под стёртой стеной (иначе в диске остаётся «дыра»).
+    if (erase) this.refreshFoodCellTypes();
   }
 
   clearWalls(): void {

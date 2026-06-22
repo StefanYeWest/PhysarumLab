@@ -53,19 +53,19 @@ export class PhysarumParticle {
     const left = this.readSensor(world, this.angleRadians - sensorAngle, dist);
     const right = this.readSensor(world, this.angleRadians + sensorAngle, dist);
 
-    if (front >= left && front >= right) {
-      // Впереди максимум — почти равные сигналы дают случайный поворот.
-      if (Math.abs(left - right) < 1e-6 && Math.abs(front - left) < 1e-6) {
-        this.angleRadians += (rng.next() - 0.5) * 2 * turnAngle;
-      }
-      // иначе сохраняем направление
+    // Правило поворота по модели Jones (2010):
+    // - впереди сильнее всего → сохранить направление;
+    // - впереди слабее обоих боковых → случайный поворот (исследование,
+    //   разрушает паразитные петли);
+    // - иначе доворачиваем к более сильному боковому сенсору.
+    if (front > left && front > right) {
+      // сохраняем направление
+    } else if (front < left && front < right) {
+      this.angleRadians += rng.next() < 0.5 ? -turnAngle : turnAngle;
     } else if (left > right) {
       this.angleRadians -= turnAngle;
     } else if (right > left) {
       this.angleRadians += turnAngle;
-    } else {
-      // Сигналы слева и справа равны, но больше переднего — случайный поворот.
-      this.angleRadians += (rng.next() - 0.5) * 2 * turnAngle;
     }
   }
 

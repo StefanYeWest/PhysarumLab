@@ -78,6 +78,12 @@ export interface AStarOptions {
   start: GridPoint;
   goal: GridPoint;
   neighborhood: Neighborhood;
+  /**
+   * Необязательный множитель стоимости входа в клетку (>= 1). Используется
+   * для извлечения маршрута Physarum: движение по сильному следу дешевле,
+   * по пустым клеткам — дороже. Геометрическая длина пути считается отдельно.
+   */
+  cellCost?: (x: number, y: number) => number;
 }
 
 const EMPTY_RESULT = (timeMs: number, visited: number): PathResult => ({
@@ -93,7 +99,8 @@ const EMPTY_RESULT = (timeMs: number, visited: number): PathResult => ({
  * Стоимость ортогонального шага = 1, диагонального = sqrt(2).
  */
 export function aStar(options: AStarOptions): PathResult {
-  const { width, height, isWalkable, start, goal, neighborhood } = options;
+  const { width, height, isWalkable, start, goal, neighborhood, cellCost } =
+    options;
   const t0 = performance.now();
 
   const startX = Math.round(start.x);
@@ -144,7 +151,6 @@ export function aStar(options: AStarOptions): PathResult {
         cameFrom,
         current,
         width,
-        gScore[goalIdx],
         visitedNodes,
         performance.now() - t0,
       );
@@ -169,7 +175,8 @@ export function aStar(options: AStarOptions): PathResult {
       const nIdx = cellIndex(nx, ny, width);
       if (closed[nIdx]) continue;
 
-      const tentativeG = gScore[current] + off.cost;
+      const stepCost = cellCost ? off.cost * cellCost(nx, ny) : off.cost;
+      const tentativeG = gScore[current] + stepCost;
       if (tentativeG < gScore[nIdx]) {
         cameFrom[nIdx] = current;
         gScore[nIdx] = tentativeG;
@@ -192,7 +199,6 @@ function reconstructPath(
   cameFrom: Int32Array,
   goalIdx: number,
   width: number,
-  length: number,
   visitedNodes: number,
   timeMs: number,
 ): PathResult {
@@ -203,6 +209,14 @@ function reconstructPath(
     current = cameFrom[current];
   }
   nodes.reverse();
+  // Геометрическая длина пути (сумма евклидовых отрезков), не зависит от
+  // весовой стоимости поиска — для честного сравнения с A*.
+  let length = 0;
+  for (let i = 1; i < nodes.length; i++) {
+    const dx = nodes[i].x - nodes[i - 1].x;
+    const dy = nodes[i].y - nodes[i - 1].y;
+    length += Math.sqrt(dx * dx + dy * dy);
+  }
   return {
     found: true,
     nodes,

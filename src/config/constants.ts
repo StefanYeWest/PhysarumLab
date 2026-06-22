@@ -28,7 +28,7 @@ export const TICKS_PER_FRAME_BY_SPEED: Record<number, number> = {
 };
 
 /** Порог количества частиц, после которого UI предупреждает о просадке FPS (NFR-013). */
-export const PARTICLE_COUNT_WARNING_THRESHOLD = 4000;
+export const PARTICLE_COUNT_WARNING_THRESHOLD = 8000;
 
 /** Список доступных preset-сценариев (FR-040). */
 export const PRESET_ENTRIES = [
@@ -40,6 +40,8 @@ export const PRESET_ENTRIES = [
     title: 'Динамическое препятствие',
     file: 'dynamic-obstacle-demo.json',
   },
+  { id: 'complex-maze', title: 'Сложный лабиринт', file: 'complex-maze.json' },
+  { id: 'tokyo', title: 'Карта Токио', file: 'tokyo.json' },
   {
     id: 'exhibition-demo',
     title: 'Выставочная демонстрация',

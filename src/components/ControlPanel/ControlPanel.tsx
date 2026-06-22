@@ -39,7 +39,18 @@ export function ControlPanel({ ui, actions }: Props) {
         <button className="btn" onClick={actions.step}>
           ⏭ Шаг
         </button>
-        <button className="btn" onClick={actions.reset}>
+        <button
+          className="btn"
+          title="Вернуть частицы в старт и очистить след, сохранив текущую карту и параметры"
+          onClick={actions.restartParticles}
+        >
+          ⟳ Перезапуск
+        </button>
+        <button
+          className="btn"
+          title="Перезагрузить сценарий: вернуть исходную карту (ручные правки будут потеряны)"
+          onClick={actions.reset}
+        >
           ↺ Сброс
         </button>
       </div>

@@ -14,7 +14,7 @@ import {
   calculateDeviation,
   calculatePathLength,
 } from '../algorithms/metrics';
-import { cellIndex, inBounds } from '../algorithms/gridMath';
+import { inBounds } from '../algorithms/gridMath';
 import { EXPLORED_TRAIL_EPSILON } from '../config/constants';
 import type { WorldGrid } from './WorldGrid';
 
@@ -47,8 +47,14 @@ export class PathAnalyzer {
   }
 
   /**
-   * Извлекает маршрут Physarum: кратчайший путь внутри активной сети
-   * (клетки, где trail >= threshold) между стартом и источником (раздел 16.2).
+   * Извлекает маршрут Physarum из карты следа (раздел 16.2).
+   *
+   * Используется A* со стоимостью входа в клетку, обратной силе следа:
+   * движение по сильному следу почти бесплатно, по пустым клеткам —
+   * дороже. Так маршрут идёт по сформированным «венам», но устойчив к
+   * единичным разрывам тонкой вены. Маршрут считается реальной сетью
+   * («сеть сформирована»), только если бóльшая часть его клеток проходит
+   * по следу выше порога — иначе возвращается found = false.
    */
   extractPhysarumPath(
     world: WorldGrid,
@@ -57,40 +63,74 @@ export class PathAnalyzer {
     neighborhood: Neighborhood,
   ): PathResult {
     const threshold = config.trailThresholdForPath;
-    const isActive = (x: number, y: number): boolean => {
-      if (!world.isWalkable(x, y)) return false;
+    const refMax = Math.max(threshold * 2, this.maxTrail(world));
+    // Штраф за движение вне следа. Чем сильнее след в клетке, тем дешевле.
+    const PENALTY = 6;
+    const cellCost = (x: number, y: number): number => {
       const i = world.index(Math.floor(x), Math.floor(y));
-      // Стартовые клетки и клетки источников всегда считаем коннекторами.
-      const type = world.cellTypes[i];
-      if (type === CELL_CODE.start || type === CELL_CODE.food) return true;
-      return world.trail[i] >= threshold;
+      const t = world.cellTypes[i];
+      if (t === CELL_CODE.start || t === CELL_CODE.food) return 1;
+      const strength = Math.min(1, world.trail[i] / refMax);
+      return 1 + PENALTY * (1 - strength);
     };
 
-    const start = this.snapToActive(world, world.startArea, isActive);
-    const goal = this.snapToActive(
-      world,
-      { x: target.x, y: target.y },
-      isActive,
-      target.radius + 2,
-    );
-    if (!start || !goal) {
-      return {
-        found: false,
-        nodes: [],
-        length: 0,
-        visitedNodes: 0,
-        calculationTimeMs: 0,
-      };
-    }
+    const start = this.snapToWalkable(world, world.startArea);
+    const goal = this.snapToWalkable(world, { x: target.x, y: target.y });
+    const notFound: PathResult = {
+      found: false,
+      nodes: [],
+      length: 0,
+      visitedNodes: 0,
+      calculationTimeMs: 0,
+    };
+    if (!start || !goal) return notFound;
 
-    return aStar({
+    const result = aStar({
       width: world.width,
       height: world.height,
-      isWalkable: isActive,
+      isWalkable: (x, y) => world.isWalkable(x, y),
       start,
       goal,
       neighborhood,
+      cellCost,
     });
+    if (!result.found) return notFound;
+
+    // Сеть считается сформированной, если достаточная доля клеток маршрута
+    // проходит по следу выше порога (исключая диски старта и еды).
+    const coverage = this.trailCoverage(world, result.nodes, threshold);
+    if (coverage < 0.45) return notFound;
+
+    return result;
+  }
+
+  /** Максимальное значение следа на карте (для нормализации стоимости). */
+  private maxTrail(world: WorldGrid): number {
+    let max = 0;
+    const trail = world.trail;
+    for (let i = 0; i < trail.length; i++) {
+      if (trail[i] > max) max = trail[i];
+    }
+    return max;
+  }
+
+  /** Доля клеток маршрута, лежащих на следе выше порога. */
+  private trailCoverage(
+    world: WorldGrid,
+    nodes: GridPoint[],
+    threshold: number,
+  ): number {
+    let onTrail = 0;
+    let counted = 0;
+    for (const n of nodes) {
+      const i = world.index(n.x, n.y);
+      const type = world.cellTypes[i];
+      // Клетки старта и еды не учитываем — там след может быть любым.
+      if (type === CELL_CODE.start || type === CELL_CODE.food) continue;
+      counted++;
+      if (world.trail[i] >= threshold) onTrail++;
+    }
+    return counted === 0 ? 1 : onTrail / counted;
   }
 
   /** Длина маршрута (сумма евклидовых отрезков). */
@@ -128,16 +168,22 @@ export class PathAnalyzer {
   }
 
   /**
-   * Сколько источников питания связаны со стартовой областью по активной
-   * сети (BFS/flood fill по клеткам trail >= threshold). Раздел 16.4.
+   * Сколько источников питания связаны со стартовой областью сформированной
+   * сетью следа (раздел 16.4). Источник связан, если для него извлекается
+   * маршрут Physarum с достаточным покрытием следом.
    */
-  countConnectedFood(world: WorldGrid, config: SimulationConfig): number {
+  countConnectedFood(
+    world: WorldGrid,
+    config: SimulationConfig,
+    neighborhood: Neighborhood = 8,
+  ): number {
     const enabledFood = world.foodSources.filter((f) => f.enabled);
     if (enabledFood.length === 0) return 0;
-    const reached = this.floodActiveFromStart(world, config);
     let connected = 0;
     for (const f of enabledFood) {
-      if (this.isFoodReached(world, f, reached)) connected++;
+      if (this.extractPhysarumPath(world, config, f, neighborhood).found) {
+        connected++;
+      }
     }
     return connected;
   }
@@ -147,9 +193,9 @@ export class PathAnalyzer {
     world: WorldGrid,
     config: SimulationConfig,
     food: FoodSource,
+    neighborhood: Neighborhood = 8,
   ): boolean {
-    const reached = this.floodActiveFromStart(world, config);
-    return this.isFoodReached(world, food, reached);
+    return this.extractPhysarumPath(world, config, food, neighborhood).found;
   }
 
   /**
@@ -171,91 +217,12 @@ export class PathAnalyzer {
 
   // --- Вспомогательные методы ---
 
-  /** Flood fill по активной сети, начиная со стартовой области. */
-  private floodActiveFromStart(
-    world: WorldGrid,
-    config: SimulationConfig,
-  ): Uint8Array {
-    const { width, height, trail, cellTypes } = world;
-    const threshold = config.trailThresholdForPath;
-    const visited = new Uint8Array(width * height);
-    const queue: number[] = [];
-
-    // Стартовые клетки — точки входа в обход.
-    for (let i = 0; i < cellTypes.length; i++) {
-      if (cellTypes[i] === CELL_CODE.start) {
-        visited[i] = 1;
-        queue.push(i);
-      }
-    }
-
-    const isActive = (i: number): boolean => {
-      const t = cellTypes[i];
-      if (t === CELL_CODE.wall) return false;
-      if (t === CELL_CODE.start || t === CELL_CODE.food) return true;
-      return trail[i] >= threshold;
-    };
-
-    let head = 0;
-    while (head < queue.length) {
-      const cur = queue[head++];
-      const cx = cur % width;
-      const cy = (cur / width) | 0;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const nx = cx + dx;
-          const ny = cy + dy;
-          if (!inBounds(nx, ny, width, height)) continue;
-          const ni = cellIndex(nx, ny, width);
-          if (visited[ni]) continue;
-          if (!isActive(ni)) continue;
-          visited[ni] = 1;
-          queue.push(ni);
-        }
-      }
-    }
-    return visited;
-  }
-
-  /** Достигнута ли клетка в радиусе источника обходом active-сети. */
-  private isFoodReached(
-    world: WorldGrid,
-    food: FoodSource,
-    reached: Uint8Array,
-  ): boolean {
-    const r = food.radius;
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > r * r) continue;
-        const x = Math.round(food.x + dx);
-        const y = Math.round(food.y + dy);
-        if (!inBounds(x, y, world.width, world.height)) continue;
-        if (reached[cellIndex(x, y, world.width)]) return true;
-      }
-    }
-    return false;
-  }
-
   /** Находит ближайшую проходимую клетку к точке (для A*). */
   private snapToWalkable(world: WorldGrid, p: GridPoint): GridPoint | null {
     if (world.isWalkable(p.x, p.y)) {
       return { x: Math.round(p.x), y: Math.round(p.y) };
     }
     return this.spiralSearch(world, p, 6, (x, y) => world.isWalkable(x, y));
-  }
-
-  /** Находит ближайшую активную клетку к точке. */
-  private snapToActive(
-    world: WorldGrid,
-    p: GridPoint,
-    isActive: (x: number, y: number) => boolean,
-    maxRadius = 6,
-  ): GridPoint | null {
-    if (isActive(Math.round(p.x), Math.round(p.y))) {
-      return { x: Math.round(p.x), y: Math.round(p.y) };
-    }
-    return this.spiralSearch(world, p, maxRadius, isActive);
   }
 
   private spiralSearch(
