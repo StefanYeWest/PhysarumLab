@@ -1,16 +1,3 @@
-/**
- * Глубокий аудит алгоритма слизевика (Physarum) — раздел 11–16 ТЗ.
- *
- * Цели:
- *  A. Сверить правило агента с канонической моделью Jones (2010).
- *  B. Проверить динамику следа (депозит/кап, испарение, диффузия, стены).
- *  C. Проверить сенсоры и getSignalAt (стены, границы).
- *  D. Сравнить эмерджентное поведение с эталонными решениями:
- *     - прямая линия на пустом поле,
- *     - A* как кратчайший путь в лабиринтах,
- *     - классический «выбор более короткого пути» (hallmark Physarum).
- *  E. Детерминизм и устойчивость (нет NaN, след ограничен).
- */
 import { describe, it, expect } from 'vitest';
 import { WorldGrid } from '../model/WorldGrid';
 import { PhysarumParticle } from '../model/PhysarumParticle';
@@ -27,9 +14,6 @@ function cfg(over: Partial<SimulationConfig> = {}): SimulationConfig {
   return { ...DEFAULT_CONFIG, ...over };
 }
 
-// =====================================================================
-// A. ПРАВИЛО АГЕНТА (модель Jones)
-// =====================================================================
 describe('A. Правило агента (Jones 2010)', () => {
   const baseCfg = cfg({
     sensorAngleDegrees: 45,
@@ -48,7 +32,6 @@ describe('A. Правило агента (Jones 2010)', () => {
   it('впереди сильнее всего → направление сохраняется', () => {
     const world = setup();
     const p = new PhysarumParticle(0, 50, 50, 0, 1);
-    // front sensor ~ (55,50)
     world.depositTrail(55, 50, 100);
     p.senseAndTurn(world, baseCfg, rng());
     expect(Math.abs(p.angleRadians)).toBeLessThan(1e-9);
@@ -57,7 +40,6 @@ describe('A. Правило агента (Jones 2010)', () => {
   it('сильнее справа → поворот вправо (+угол)', () => {
     const world = setup();
     const p = new PhysarumParticle(0, 50, 50, 0, 1);
-    // right sensor at +45°: (~53.5, ~53.5)
     world.depositTrail(53, 53, 100);
     p.senseAndTurn(world, baseCfg, rng());
     expect(p.angleRadians).toBeCloseTo(30 * DEG, 5);
@@ -66,7 +48,6 @@ describe('A. Правило агента (Jones 2010)', () => {
   it('сильнее слева → поворот влево (−угол)', () => {
     const world = setup();
     const p = new PhysarumParticle(0, 50, 50, 0, 1);
-    // left sensor at −45°: (~53.5, ~46.5)
     world.depositTrail(53, 46, 100);
     p.senseAndTurn(world, baseCfg, rng());
     expect(p.angleRadians).toBeCloseTo(-30 * DEG, 5);
@@ -75,10 +56,9 @@ describe('A. Правило агента (Jones 2010)', () => {
   it('впереди локальный минимум (бока сильнее) → случайный поворот на ±угол', () => {
     const world = setup();
     const p = new PhysarumParticle(0, 50, 50, 0, 1);
-    world.depositTrail(53, 53, 100); // right
-    world.depositTrail(53, 46, 100); // left, front пусто
+    world.depositTrail(53, 53, 100);
+    world.depositTrail(53, 46, 100);
     p.senseAndTurn(world, baseCfg, rng());
-    // поворот ровно на turnAngle в одну из сторон
     expect(Math.abs(Math.abs(p.angleRadians) - 30 * DEG)).toBeLessThan(1e-9);
   });
 
@@ -112,22 +92,17 @@ describe('A. Правило агента (Jones 2010)', () => {
 
   it('перерождение после длительного застревания', () => {
     const world = setup();
-    world.addWall(51, 50); // клетка прямо по курсу (angle=0)
+    world.addWall(51, 50);
     const c = cfg({ stuckParticleRespawnTicks: 3, particleSpeed: 1 });
     const p = new PhysarumParticle(0, 50, 50, 0, 1);
-    p.stuckTicks = c.stuckParticleRespawnTicks; // уже на пороге застревания
-    // Следующее столкновение поднимет stuckTicks выше порога → перерождение.
+    p.stuckTicks = c.stuckParticleRespawnTicks;
     p.move(world, c, new SeededRandom(5));
-    // после респауна частица в стартовой области (5,50,r=4)
     const d = Math.hypot(p.x - 5, p.y - 50);
     expect(d).toBeLessThanOrEqual(4 + 1e-6);
     expect(p.stuckTicks).toBe(0);
   });
 });
 
-// =====================================================================
-// B. ДИНАМИКА СЛЕДА
-// =====================================================================
 describe('B. Динамика следа', () => {
   it('депозит ограничен trailMaxValue', () => {
     const w = new WorldGrid(10, 10);
@@ -160,7 +135,6 @@ describe('B. Динамика следа', () => {
     w.diffuseTrail(0.5);
     expect(w.getTrailAt(5, 5)).toBeLessThan(before);
     expect(w.getTrailAt(6, 5)).toBeGreaterThan(0);
-    // суммарная масса не увеличивается при диффузии
     let sum = 0;
     for (let i = 0; i < w.trail.length; i++) sum += w.trail[i];
     expect(sum).toBeLessThanOrEqual(before + 1e-6);
@@ -174,13 +148,10 @@ describe('B. Динамика следа', () => {
     expect(w.getTrailAt(6, 5)).toBe(0);
     w.depositTrail(5, 5, 100);
     w.diffuseTrail(0.9);
-    expect(w.getTrailAt(6, 5)).toBe(0); // в стену не затекает
+    expect(w.getTrailAt(6, 5)).toBe(0);
   });
 });
 
-// =====================================================================
-// C. СЕНСОРЫ
-// =====================================================================
 describe('C. Сенсоры и сигнал', () => {
   it('getSignalAt: стена и выход за границы → сильное отталкивание', () => {
     const w = new WorldGrid(10, 10);
@@ -198,27 +169,19 @@ describe('C. Сенсоры и сигнал', () => {
   });
 
   it('ДОКУМЕНТИРОВАНО: точечный сенсор «видит» сквозь тонкую стену', () => {
-    // Это известное упрощение модели Jones (точечные сенсоры без луча).
     const w = new WorldGrid(40, 10);
     w.setTrailMaxValue(255);
-    w.addWall(10, 5); // тонкая стена толщиной 1
-    w.depositTrail(15, 5, 100); // след за стеной
+    w.addWall(10, 5);
+    w.depositTrail(15, 5, 100);
     const p = new PhysarumParticle(0, 5, 5, 0, 1);
-    // сенсор на расстоянии 10 «перепрыгнет» стену в точке x=10 и попадёт на x=15
     const c = cfg({ sensorDistance: 10, sensorAngleDegrees: 20, turnAngleDegrees: 10 });
     const before = p.angleRadians;
     p.senseAndTurn(w, c, new SeededRandom(1));
-    // частица реагирует на след за стеной (угол изменится или останется по фронту)
     expect(Number.isFinite(p.angleRadians)).toBe(true);
     expect(before).toBe(0);
   });
 });
 
-// =====================================================================
-// D. ЭТАЛОННЫЕ СРАВНЕНИЯ
-// =====================================================================
-
-/** Заполняет всю карту стенами, оставляя проходимыми только заданные прямоугольники. */
 function carveWorld(
   engine: SimulationEngine,
   corridors: Array<[number, number, number, number]>,
@@ -233,7 +196,6 @@ function carveWorld(
       for (let x = x0; x <= x1; x++) w.removeWall(x, y);
   };
   for (const [x0, y0, x1, y1] of corridors) open(x0, y0, x1, y1);
-  // освобождаем диски старта/еды
   open(start.x - start.radius, start.y - start.radius, start.x + start.radius, start.y + start.radius);
   open(food.x - 7, food.y - 7, food.x + 7, food.y + 7);
   engine.setStartArea(start);
@@ -267,7 +229,7 @@ describe('D. Сравнение с эталонными решениями', () 
       walls: [],
     });
     const food = engine.world.foodSources[0];
-    const straight = Math.hypot(140 - 20, 0); // прямая
+    const straight = Math.hypot(140 - 20, 0);
     let best: number | null = null;
     for (let t = 1; t <= 2500; t++) {
       engine.tick();
@@ -282,7 +244,7 @@ describe('D. Сравнение с эталонными решениями', () 
      
     console.log(`[empty] straight=${straight.toFixed(0)} bestDeviation=${best === null ? 'NONE' : best.toFixed(0) + '%'}`);
     expect(best).not.toBeNull();
-    expect(best as number).toBeLessThan(70); // близко к прямой, не в разы длиннее
+    expect(best as number).toBeLessThan(70);
   }, 60000);
 
   it('эталон A*: во всех лабиринтах извлечённый путь не короче A* и формируется', () => {
@@ -315,7 +277,6 @@ describe('D. Сравнение с эталонными решениями', () 
         if (t % 250 === 0 && dev === null && t > 400) {
           const r = engine.analyzer.extractPhysarumPath(engine.world, engine.config, food, 8);
           if (r.found) {
-            // Physarum не может быть существенно короче оптимального A*.
             expect(r.length).toBeGreaterThan(aStar.length * 0.95);
             dev = Math.round(((r.length - aStar.length) / aStar.length) * 100);
           }
@@ -332,14 +293,13 @@ describe('D. Сравнение с эталонными решениями', () 
     const c = cfg({ gridWidth: 150, gridHeight: 90, particleCount: 3500, foodAttractionRadius: 24 });
     const engine = new SimulationEngine(c);
     engine.clearAll();
-    // короткий прямой коридор (y 42..48) и длинный «через верх».
     carveWorld(
       engine,
       [
-        [12, 42, 138, 48], // короткий прямой
-        [12, 12, 20, 48], // левый подъём
-        [12, 12, 138, 20], // верхняя перемычка
-        [130, 12, 138, 48], // правый спуск
+        [12, 42, 138, 48],
+        [12, 12, 20, 48],
+        [12, 12, 138, 20],
+        [130, 12, 138, 48],
       ],
       { x: 14, y: 45, radius: 5 },
       { x: 136, y: 45 },
@@ -353,9 +313,6 @@ describe('D. Сравнение с эталонными решениями', () 
   }, 60000);
 });
 
-// =====================================================================
-// E. ДЕТЕРМИНИЗМ И УСТОЙЧИВОСТЬ
-// =====================================================================
 describe('E. Детерминизм и устойчивость', () => {
   it('одинаковый seed → побитовая воспроизводимость следа', () => {
     const make = () => {

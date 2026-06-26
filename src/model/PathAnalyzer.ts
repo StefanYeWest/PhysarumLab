@@ -1,10 +1,3 @@
-/**
- * PathAnalyzer — класс анализа маршрутов (раздел 6.2.4, 16 ТЗ).
- *
- * Строит эталонный A*, извлекает маршрут Physarum из карты следа,
- * считает длины, отклонение, эффективность, покрытие карты и связность
- * сети с источниками питания.
- */
 import type { SimulationConfig, Neighborhood } from '../types/simulation';
 import type { FoodSource, GridPoint } from '../types/grid';
 import type { PathResult } from '../types/metrics';
@@ -19,7 +12,6 @@ import { EXPLORED_TRAIL_EPSILON } from '../config/constants';
 import type { WorldGrid } from './WorldGrid';
 
 export class PathAnalyzer {
-  /** Эталонный маршрут A* от стартовой области до источника (раздел 15). */
   buildAStarPath(
     world: WorldGrid,
     target: FoodSource,
@@ -46,16 +38,6 @@ export class PathAnalyzer {
     });
   }
 
-  /**
-   * Извлекает маршрут Physarum из карты следа (раздел 16.2).
-   *
-   * Используется A* со стоимостью входа в клетку, обратной силе следа:
-   * движение по сильному следу почти бесплатно, по пустым клеткам —
-   * дороже. Так маршрут идёт по сформированным «венам», но устойчив к
-   * единичным разрывам тонкой вены. Маршрут считается реальной сетью
-   * («сеть сформирована»), только если бóльшая часть его клеток проходит
-   * по следу выше порога — иначе возвращается found = false.
-   */
   extractPhysarumPath(
     world: WorldGrid,
     config: SimulationConfig,
@@ -64,7 +46,6 @@ export class PathAnalyzer {
   ): PathResult {
     const threshold = config.trailThresholdForPath;
     const refMax = Math.max(threshold * 2, this.maxTrail(world));
-    // Штраф за движение вне следа. Чем сильнее след в клетке, тем дешевле.
     const PENALTY = 6;
     const cellCost = (x: number, y: number): number => {
       const i = world.index(Math.floor(x), Math.floor(y));
@@ -96,15 +77,12 @@ export class PathAnalyzer {
     });
     if (!result.found) return notFound;
 
-    // Сеть считается сформированной, если достаточная доля клеток маршрута
-    // проходит по следу выше порога (исключая диски старта и еды).
     const coverage = this.trailCoverage(world, result.nodes, threshold);
     if (coverage < 0.45) return notFound;
 
     return result;
   }
 
-  /** Максимальное значение следа на карте (для нормализации стоимости). */
   private maxTrail(world: WorldGrid): number {
     let max = 0;
     const trail = world.trail;
@@ -114,7 +92,6 @@ export class PathAnalyzer {
     return max;
   }
 
-  /** Доля клеток маршрута, лежащих на следе выше порога. */
   private trailCoverage(
     world: WorldGrid,
     nodes: GridPoint[],
@@ -125,7 +102,6 @@ export class PathAnalyzer {
     for (const n of nodes) {
       const i = world.index(n.x, n.y);
       const type = world.cellTypes[i];
-      // Клетки старта и еды не учитываем — там след может быть любым.
       if (type === CELL_CODE.start || type === CELL_CODE.food) continue;
       counted++;
       if (world.trail[i] >= threshold) onTrail++;
@@ -133,17 +109,14 @@ export class PathAnalyzer {
     return counted === 0 ? 1 : onTrail / counted;
   }
 
-  /** Длина маршрута (сумма евклидовых отрезков). */
   calculatePathLength(nodes: GridPoint[]): number {
     return calculatePathLength(nodes);
   }
 
-  /** Процент отклонения Physarum от A*. */
   calculateDeviation(aStarLength: number, physarumLength: number): number {
     return calculateDeviation(aStarLength, physarumLength);
   }
 
-  /** Число активных клеток следа (trail >= threshold). */
   countActiveTrailCells(world: WorldGrid, threshold: number): number {
     let count = 0;
     const trail = world.trail;
@@ -155,7 +128,6 @@ export class PathAnalyzer {
     return count;
   }
 
-  /** Число исследованных клеток (есть хоть какой-то след). */
   countExploredCells(world: WorldGrid): number {
     let count = 0;
     const trail = world.trail;
@@ -167,11 +139,6 @@ export class PathAnalyzer {
     return count;
   }
 
-  /**
-   * Сколько источников питания связаны со стартовой областью сформированной
-   * сетью следа (раздел 16.4). Источник связан, если для него извлекается
-   * маршрут Physarum с достаточным покрытием следом.
-   */
   countConnectedFood(
     world: WorldGrid,
     config: SimulationConfig,
@@ -188,7 +155,6 @@ export class PathAnalyzer {
     return connected;
   }
 
-  /** Проверяет связность старта с конкретным источником (для восстановления). */
   isConnectedToFood(
     world: WorldGrid,
     config: SimulationConfig,
@@ -198,11 +164,6 @@ export class PathAnalyzer {
     return this.extractPhysarumPath(world, config, food, neighborhood).found;
   }
 
-  /**
-   * Базовая сетевая оценка для нескольких источников: сумма длин A*-маршрутов
-   * от старта до каждого включённого источника (раздел 16.4).
-   * Это приближение, а не точное решение задачи Штейнера.
-   */
   baselineNetworkCost(world: WorldGrid, neighborhood: Neighborhood): number | null {
     const enabled = world.foodSources.filter((f) => f.enabled);
     if (enabled.length === 0) return null;
@@ -215,9 +176,6 @@ export class PathAnalyzer {
     return total;
   }
 
-  // --- Вспомогательные методы ---
-
-  /** Находит ближайшую проходимую клетку к точке (для A*). */
   private snapToWalkable(world: WorldGrid, p: GridPoint): GridPoint | null {
     if (world.isWalkable(p.x, p.y)) {
       return { x: Math.round(p.x), y: Math.round(p.y) };

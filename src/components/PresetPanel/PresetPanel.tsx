@@ -1,7 +1,3 @@
-/**
- * PresetPanel — выбор сценариев, импорт/экспорт JSON и управление
- * источниками питания (FR-040..043, FR-034..036, FR-082).
- */
 import { useRef, useState } from 'react';
 import styles from './PresetPanel.module.css';
 import type { SimulationActions, UiState } from '../../app/useSimulation';

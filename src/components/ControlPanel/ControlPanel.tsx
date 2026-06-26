@@ -1,7 +1,3 @@
-/**
- * ControlPanel — управление симуляцией и инструментами карты
- * (FR-020..026, FR-030..032, разделы 19.2-19.3).
- */
 import styles from './ControlPanel.module.css';
 import type { SimulationActions, Tool, UiState } from '../../app/useSimulation';
 import { SIMULATION_SPEED_OPTIONS } from '../../config/constants';

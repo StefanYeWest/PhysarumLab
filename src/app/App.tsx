@@ -1,6 +1,3 @@
-/**
- * App — корневой компонент, собирающий layout выставочного стенда (раздел 19).
- */
 import { useState } from 'react';
 import styles from './App.module.css';
 import { useSimulation } from './useSimulation';

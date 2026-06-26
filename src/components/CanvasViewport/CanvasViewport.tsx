@@ -1,7 +1,3 @@
-/**
- * CanvasViewport — область визуализации. Подключает Canvas к рендереру
- * и обрабатывает рисование инструментами мышью (FR-031).
- */
 import { useCallback, useRef } from 'react';
 import styles from './CanvasViewport.module.css';
 import type {
@@ -30,7 +26,6 @@ export function CanvasViewport({ ui, actions, attachCanvas }: Props) {
     [attachCanvas],
   );
 
-  /** Переводит координаты события в координаты клетки сетки. */
   const toCell = useCallback(
     (clientX: number, clientY: number) => {
       const canvas = canvasElRef.current;

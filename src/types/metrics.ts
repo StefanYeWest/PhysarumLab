@@ -1,8 +1,3 @@
-/**
- * Типы метрик симуляции и результатов анализа маршрутов.
- */
-
-/** Сводные метрики симуляции для панели статистики (FR-070). */
 export interface SimulationMetrics {
   tick: number;
   fps: number;
@@ -25,7 +20,6 @@ export interface SimulationMetrics {
   recoveryTimeAfterObstacleTicks: number | null;
 }
 
-/** Результат работы алгоритма поиска пути (A* / извлечение Physarum). */
 export interface PathResult {
   found: boolean;
   nodes: Array<{ x: number; y: number }>;
@@ -34,7 +28,6 @@ export interface PathResult {
   calculationTimeMs: number;
 }
 
-/** Одна строка истории метрик (для экспорта в CSV). */
 export interface MetricsHistoryRow {
   tick: number;
   fps: number;

@@ -1,7 +1,3 @@
-/**
- * MetricsPanel — панель метрик, сгруппированных по разделам (FR-070, 19.5).
- * Недоступные метрики показываются как «—» (FR-071).
- */
 import styles from './MetricsPanel.module.css';
 import type { SimulationMetrics } from '../../types/metrics';
 

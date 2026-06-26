@@ -1,10 +1,3 @@
-/**
- * WorldGrid — класс двумерной среды симуляции (раздел 6.2.2 ТЗ).
- *
- * Хранит типы клеток, карту следа, пищевое поле, стартовую область и
- * источники питания. Отвечает за проходимость, испарение и диффузию следа,
- * чтение сигналов в точках карты.
- */
 import {
   CELL_CODE,
   type CellType,
@@ -19,14 +12,10 @@ export class WorldGrid {
   readonly width: number;
   readonly height: number;
 
-  /** Тип каждой клетки (коды из CELL_CODE). */
   readonly cellTypes: Uint8Array;
-  /** Карта следа (Float32Array для производительности, NFR-004). */
   readonly trail: Float32Array;
-  /** Пищевое поле — локальное притяжение источников питания. */
   readonly foodField: Float32Array;
 
-  /** Двойной буфер для диффузии (чтобы не аллоцировать каждый тик). */
   private readonly trailBuffer: Float32Array;
 
   startArea: StartArea;
@@ -49,7 +38,6 @@ export class WorldGrid {
     };
   }
 
-  /** Устанавливает максимальное значение следа (из конфига). */
   setTrailMaxValue(value: number): void {
     this.trailMaxValue = value;
   }
@@ -57,8 +45,6 @@ export class WorldGrid {
   index(x: number, y: number): number {
     return cellIndex(x, y, this.width);
   }
-
-  // --- Типы клеток ---
 
   getCellType(x: number, y: number): CellType {
     const code = this.cellTypes[this.index(x, y)];
@@ -71,7 +57,6 @@ export class WorldGrid {
           : 'empty';
   }
 
-  /** Клетка проходима, если она в границах и не является стеной. */
   isWalkable(x: number, y: number): boolean {
     const ix = Math.floor(x);
     const iy = Math.floor(y);
@@ -84,13 +69,10 @@ export class WorldGrid {
     return this.cellTypes[this.index(x, y)] === CELL_CODE.wall;
   }
 
-  // --- Стены ---
-
   addWall(x: number, y: number): void {
     if (!inBounds(x, y, this.width, this.height)) return;
     const i = this.index(x, y);
     this.cellTypes[i] = CELL_CODE.wall;
-    // Препятствия не накапливают след (раздел 12.3, FR-038).
     this.trail[i] = 0;
     this.foodField[i] = 0;
   }
@@ -103,7 +85,6 @@ export class WorldGrid {
     }
   }
 
-  /** Рисует прямоугольную стену (используется при загрузке preset). */
   addWallRect(x: number, y: number, w: number, h: number): void {
     for (let yy = y; yy < y + h; yy++) {
       for (let xx = x; xx < x + w; xx++) {
@@ -112,7 +93,6 @@ export class WorldGrid {
     }
   }
 
-  /** Кистью рисует/стирает стену в радиусе brushRadius. */
   paintWall(cx: number, cy: number, brushRadius: number, erase: boolean): void {
     const r = Math.max(0, brushRadius);
     for (let dy = -r; dy <= r; dy++) {
@@ -128,8 +108,6 @@ export class WorldGrid {
         }
       }
     }
-    // После стирания восстанавливаем метки старта/еды, которые могли
-    // оказаться под стёртой стеной (иначе в диске остаётся «дыра»).
     if (erase) this.refreshFoodCellTypes();
   }
 
@@ -141,13 +119,10 @@ export class WorldGrid {
     }
   }
 
-  // --- След ---
-
   clearTrail(): void {
     this.trail.fill(0);
   }
 
-  /** Очищает след внутри прямоугольной области (после блокировки маршрута). */
   clearTrailInRect(x: number, y: number, w: number, h: number): void {
     for (let yy = y; yy < y + h; yy++) {
       for (let xx = x; xx < x + w; xx++) {
@@ -157,7 +132,6 @@ export class WorldGrid {
     }
   }
 
-  /** Добавляет след в клетку с ограничением по максимуму (раздел 11.3). */
   depositTrail(x: number, y: number, amount: number): void {
     const ix = Math.floor(x);
     const iy = Math.floor(y);
@@ -167,7 +141,6 @@ export class WorldGrid {
     this.trail[i] = Math.min(this.trailMaxValue, this.trail[i] + amount);
   }
 
-  /** Значение следа в клетке (билинейно не интерполируется, берём клетку). */
   getTrailAt(x: number, y: number): number {
     const ix = Math.floor(x);
     const iy = Math.floor(y);
@@ -182,10 +155,6 @@ export class WorldGrid {
     return this.foodField[this.index(ix, iy)];
   }
 
-  /**
-   * Суммарный сигнал в точке: след + пищевое поле - штраф за стену
-   * (раздел 11.1). Если точка вне карты или в стене — сильный штраф.
-   */
   getSignalAt(x: number, y: number): number {
     const ix = Math.floor(x);
     const iy = Math.floor(y);
@@ -195,7 +164,6 @@ export class WorldGrid {
     return this.trail[i] + this.foodField[i];
   }
 
-  /** Испарение следа: trail *= (1 - rate) (раздел 12.2). */
   evaporateTrail(rate: number): void {
     const factor = 1 - rate;
     const trail = this.trail;
@@ -206,11 +174,6 @@ export class WorldGrid {
     }
   }
 
-  /**
-   * Диффузия следа по окрестности 3x3 (раздел 12.3).
-   * newTrail = trail*(1-rate) + neighborAverage*rate.
-   * Стены не накапливают след и не участвуют как источники.
-   */
   diffuseTrail(rate: number): void {
     if (rate <= 0) return;
     const { width, height, trail, trailBuffer, cellTypes } = this;
@@ -243,8 +206,6 @@ export class WorldGrid {
     trail.set(trailBuffer);
   }
 
-  // --- Источники питания ---
-
   addFood(food: FoodSource): void {
     this.foodSources.push(food);
     this.markFoodCells();
@@ -261,7 +222,6 @@ export class WorldGrid {
     this.refreshFoodCellTypes();
   }
 
-  /** Ближайший включённый источник питания к точке (или null). */
   findFoodNear(x: number, y: number): FoodSource | null {
     let best: FoodSource | null = null;
     let bestDist = Infinity;
@@ -277,23 +237,18 @@ export class WorldGrid {
     return best;
   }
 
-  /** Помечает клетки источников питания как 'food' (для отрисовки/типов). */
   private markFoodCells(): void {
     this.refreshFoodCellTypes();
   }
 
-  /** Перестраивает клетки-метки источников и стартовой области. */
   refreshFoodCellTypes(): void {
-    // Сбрасываем старые метки food/start, не трогая стены.
     for (let i = 0; i < this.cellTypes.length; i++) {
       const c = this.cellTypes[i];
       if (c === CELL_CODE.food || c === CELL_CODE.start) {
         this.cellTypes[i] = CELL_CODE.empty;
       }
     }
-    // Стартовая область.
     this.stampDisc(this.startArea.x, this.startArea.y, this.startArea.radius, CELL_CODE.start);
-    // Источники питания.
     for (const f of this.foodSources) {
       if (!f.enabled) continue;
       this.stampDisc(f.x, f.y, f.radius, CELL_CODE.food);
@@ -309,23 +264,17 @@ export class WorldGrid {
         const y = Math.round(cy + dy);
         if (!inBounds(x, y, this.width, this.height)) continue;
         const i = this.index(x, y);
-        // Не перетираем стены.
         if (this.cellTypes[i] === CELL_CODE.wall) continue;
         this.cellTypes[i] = code;
       }
     }
   }
 
-  /** Переносит стартовую область и обновляет метки клеток. */
   setStartArea(area: StartArea): void {
     this.startArea = area;
     this.refreshFoodCellTypes();
   }
 
-  /**
-   * Пересчитывает пищевое поле от всех включённых источников (раздел 13).
-   * foodValue = strength * max(0, 1 - dist / radius). Поле локально.
-   */
   updateFoodAttractionField(globalStrength: number, globalRadius: number): void {
     this.foodField.fill(0);
     for (const f of this.foodSources) {
@@ -350,7 +299,6 @@ export class WorldGrid {
     }
   }
 
-  /** Количество проходимых клеток (для расчёта покрытия). */
   countWalkableCells(): number {
     let count = 0;
     for (let i = 0; i < this.cellTypes.length; i++) {

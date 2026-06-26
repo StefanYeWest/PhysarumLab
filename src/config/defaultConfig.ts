@@ -1,9 +1,5 @@
-/**
- * Конфигурация симуляции по умолчанию и метаданные параметров для UI.
- */
 import type { SimulationConfig } from '../types/simulation';
 
-/** Значения симуляции по умолчанию (совпадают с выставочным сценарием). */
 export const DEFAULT_CONFIG: SimulationConfig = {
   gridWidth: 180,
   gridHeight: 120,
@@ -30,10 +26,8 @@ export const DEFAULT_CONFIG: SimulationConfig = {
   stuckParticleRespawnTicks: 80,
 };
 
-/** Какие параметры можно менять «на лету» без полного сброса (FR-052). */
 export type ConfigParamKey = keyof SimulationConfig;
 
-/** Описание настраиваемого параметра для панели параметров (FR-050, 19.4). */
 export interface ParamMeta {
   key: ConfigParamKey;
   label: string;
@@ -41,12 +35,10 @@ export interface ParamMeta {
   min: number;
   max: number;
   step: number;
-  /** true — изменение применяется без сброса симуляции (FR-051/052). */
   liveEditable: boolean;
   tooltip: string;
 }
 
-/** Метаданные всех редактируемых параметров. */
 export const PARAM_META: ParamMeta[] = [
   {
     key: 'particleCount',
