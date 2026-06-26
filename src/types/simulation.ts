@@ -1,8 +1,3 @@
-/**
- * Типы конфигурации и состояния симуляции.
- */
-
-/** Полная конфигурация модели симуляции. */
 export interface SimulationConfig {
   gridWidth: number;
   gridHeight: number;
@@ -29,7 +24,6 @@ export interface SimulationConfig {
   stuckParticleRespawnTicks: number;
 }
 
-/** Сериализуемое состояние одной частицы. */
 export interface ParticleState {
   id: number;
   x: number;
@@ -40,5 +34,4 @@ export interface ParticleState {
   stuckTicks: number;
 }
 
-/** Режим соседства для A* и извлечения маршрута. */
 export type Neighborhood = 4 | 8;

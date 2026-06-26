@@ -1,15 +1,8 @@
-/**
- * CanvasRenderer — отрисовка состояния симуляции на HTML Canvas 2D.
- *
- * Использует ImageData для тепловой карты следа (быстро, без тысяч
- * DOM-элементов, NFR-005). Поддерживает включение/выключение слоёв (FR-061).
- */
 import type { SimulationEngine } from '../model/SimulationEngine';
 import { CELL_CODE } from '../types/grid';
 import { PALETTE, TRAIL_COLOR_TABLE } from './colorMaps';
 import { drawDisc, drawLabel, drawPolyline } from './drawUtils';
 
-/** Видимость визуальных слоёв (FR-061). */
 export interface LayerVisibility {
   particles: boolean;
   trail: boolean;
@@ -44,7 +37,6 @@ export class CanvasRenderer {
     this.ctx = ctx;
   }
 
-  /** Подгоняет размеры канваса под сетку и cellSize. */
   resize(width: number, height: number, cellSize: number): void {
     this.canvas.width = width * cellSize;
     this.canvas.height = height * cellSize;
@@ -55,39 +47,31 @@ export class CanvasRenderer {
     }
   }
 
-  /** Полная отрисовка кадра. */
   render(engine: SimulationEngine, layers: LayerVisibility): void {
     const { world, config } = engine;
     const cs = config.cellSize;
     const ctx = this.ctx;
 
-    // Фон.
     ctx.fillStyle = PALETTE.background;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Тепловая карта следа через ImageData (масштабируется на клетку).
     if (layers.trail) {
       this.renderTrailLayer(engine, layers.heatmap);
     }
 
-    // Сетка.
     if (layers.grid) {
       this.renderGrid(world.width, world.height, cs);
     }
 
-    // Стены и метки-клетки.
     this.renderCells(engine);
 
-    // Активная сеть.
     if (layers.activeNetwork) {
       this.renderActiveNetwork(engine);
     }
 
-    // Стартовая область.
     const sa = world.startArea;
     drawDisc(ctx, sa.x, sa.y, sa.radius, cs, PALETTE.startFill, PALETTE.start, 2);
 
-    // Источники питания.
     for (const f of world.foodSources) {
       const color = f.enabled ? PALETTE.food : PALETTE.foodDisabled;
       drawDisc(
@@ -102,12 +86,10 @@ export class CanvasRenderer {
       );
     }
 
-    // Частицы.
     if (layers.particles) {
       this.renderParticles(engine);
     }
 
-    // Маршруты.
     if (layers.aStar && engine.aStarResult?.found) {
       drawPolyline(ctx, engine.aStarResult.nodes, cs, PALETTE.aStar, 2.5, true);
     }
@@ -122,7 +104,6 @@ export class CanvasRenderer {
       );
     }
 
-    // Подписи.
     if (layers.labels) {
       drawLabel(ctx, 'Старт', sa.x, sa.y - sa.radius - 2, cs, PALETTE.start);
       for (const f of world.foodSources) {
@@ -137,9 +118,6 @@ export class CanvasRenderer {
     const data = this.imageData.data;
     const trail = world.trail;
 
-    // Авто-масштаб яркости: нормируем по текущему максимуму следа, а не по
-    // абсолютному пределу. Так тепловая карта остаётся яркой при любых
-    // параметрах испарения/депозита. Нижний порог не даёт «вспыхивать» шуму.
     let peak = 0;
     for (let i = 0; i < trail.length; i++) {
       if (trail[i] > peak) peak = trail[i];
@@ -171,7 +149,6 @@ export class CanvasRenderer {
       data[o + 3] = Math.floor(Math.min(1, norm * 1.6) * 255);
     }
 
-    // Рисуем ImageData в маленький offscreen и масштабируем.
     const cs = config.cellSize;
     const off = document.createElement('canvas');
     off.width = world.width;

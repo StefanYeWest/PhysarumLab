@@ -1,6 +1,3 @@
-/**
- * Legend — легенда цветов и объектов карты (FR-065, NFR-024, раздел 20).
- */
 import styles from './Legend.module.css';
 import { PALETTE } from '../../rendering/colorMaps';
 

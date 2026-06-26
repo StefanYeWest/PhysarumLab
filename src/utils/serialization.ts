@@ -1,15 +1,10 @@
-/**
- * Сериализация/валидация preset-сценариев и формирование CSV.
- */
 import type { Preset } from '../types/presets';
 import type { MetricsHistoryRow } from '../types/metrics';
 import { DEFAULT_CONFIG } from '../config/defaultConfig';
 
-/** Заголовок CSV истории метрик (FR-112). */
 export const METRICS_CSV_HEADER =
   'tick,fps,activeTrailCells,exploredPercent,connectedFoodCount,aStarPathLength,physarumPathLength,routeDeviationPercent,routeEfficiency';
 
-/** Преобразует историю метрик в CSV-строку. */
 export function metricsHistoryToCsv(rows: MetricsHistoryRow[]): string {
   const lines = [METRICS_CSV_HEADER];
   for (const r of rows) {
@@ -34,10 +29,6 @@ function formatNullable(value: number | null): string {
   return value === null ? '' : value.toFixed(2);
 }
 
-/**
- * Проверяет и нормализует загруженный preset.
- * Бросает ошибку с понятным сообщением при некорректной структуре (NFR-010/011).
- */
 export function parsePreset(raw: unknown): Preset {
   if (typeof raw !== 'object' || raw === null) {
     throw new Error('Файл сценария пуст или имеет неверный формат.');
@@ -60,8 +51,6 @@ export function parsePreset(raw: unknown): Preset {
     throw new Error('Поле "walls" должно быть массивом.');
   }
 
-  // Конфиг дополняется значениями по умолчанию, чтобы устойчиво
-  // принимать частично заполненные сценарии.
   const config = { ...DEFAULT_CONFIG, ...(obj.config as object) };
 
   return {

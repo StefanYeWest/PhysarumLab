@@ -1,9 +1,5 @@
-/**
- * Низкоуровневые помощники отрисовки на Canvas 2D.
- */
 import type { GridPoint } from '../types/grid';
 
-/** Рисует ломаную линию по точкам сетки с учётом размера клетки. */
 export function drawPolyline(
   ctx: CanvasRenderingContext2D,
   nodes: GridPoint[],
@@ -31,7 +27,6 @@ export function drawPolyline(
   ctx.restore();
 }
 
-/** Рисует круг (диск) с обводкой в координатах сетки. */
 export function drawDisc(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -61,7 +56,6 @@ export function drawDisc(
   ctx.restore();
 }
 
-/** Рисует текстовую подпись в координатах сетки. */
 export function drawLabel(
   ctx: CanvasRenderingContext2D,
   text: string,

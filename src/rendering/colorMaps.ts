@@ -1,9 +1,3 @@
-/**
- * Цветовые карты для визуализации следа (тепловая карта) и палитра объектов.
- * Тёмная научно-выставочная тема (раздел 20 ТЗ).
- */
-
-/** Палитра объектов карты. */
 export const PALETTE = {
   background: '#0a0e1a',
   grid: 'rgba(120, 140, 180, 0.08)',
@@ -20,15 +14,10 @@ export const PALETTE = {
   label: '#e2e8f0',
 } as const;
 
-/**
- * Таблица из 256 RGB-цветов для тепловой карты следа.
- * Переход: тёмно-фиолетовый/синий (слабый) → розовый → оранжевый → жёлтый.
- */
 export const TRAIL_COLOR_TABLE = buildTrailColorTable();
 
 function buildTrailColorTable(): Uint8ClampedArray {
   const table = new Uint8ClampedArray(256 * 3);
-  // Контрольные точки градиента (значение 0..1 → RGB).
   const stops: Array<[number, [number, number, number]]> = [
     [0.0, [10, 8, 40]],
     [0.25, [60, 20, 110]],

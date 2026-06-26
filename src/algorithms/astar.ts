@@ -1,7 +1,3 @@
-/**
- * Самостоятельная реализация алгоритма A* на сетке (раздел 11/15 ТЗ).
- * Готовые pathfinding-библиотеки не используются.
- */
 import type { GridPoint } from '../types/grid';
 import type { Neighborhood } from '../types/simulation';
 import type { PathResult } from '../types/metrics';
@@ -13,10 +9,6 @@ import {
   manhattan,
 } from './gridMath';
 
-/**
- * Бинарная min-куча по f-стоимости.
- * Хранит индексы клеток; стоимости берутся из внешнего массива fScore.
- */
 class MinHeap {
   private heap: number[] = [];
 
@@ -73,16 +65,10 @@ class MinHeap {
 export interface AStarOptions {
   width: number;
   height: number;
-  /** Предикат проходимости клетки. */
   isWalkable: (x: number, y: number) => boolean;
   start: GridPoint;
   goal: GridPoint;
   neighborhood: Neighborhood;
-  /**
-   * Необязательный множитель стоимости входа в клетку (>= 1). Используется
-   * для извлечения маршрута Physarum: движение по сильному следу дешевле,
-   * по пустым клеткам — дороже. Геометрическая длина пути считается отдельно.
-   */
   cellCost?: (x: number, y: number) => number;
 }
 
@@ -94,10 +80,6 @@ const EMPTY_RESULT = (timeMs: number, visited: number): PathResult => ({
   calculationTimeMs: timeMs,
 });
 
-/**
- * Запускает A* и возвращает кратчайший путь от start до goal.
- * Стоимость ортогонального шага = 1, диагонального = sqrt(2).
- */
 export function aStar(options: AStarOptions): PathResult {
   const { width, height, isWalkable, start, goal, neighborhood, cellCost } =
     options;
@@ -165,7 +147,6 @@ export function aStar(options: AStarOptions): PathResult {
       if (!inBounds(nx, ny, width, height)) continue;
       if (!isWalkable(nx, ny)) continue;
 
-      // Запрет «срезания углов» по диагонали через стену.
       if (off.dx !== 0 && off.dy !== 0) {
         if (!isWalkable(cx + off.dx, cy) || !isWalkable(cx, cy + off.dy)) {
           continue;
@@ -185,7 +166,6 @@ export function aStar(options: AStarOptions): PathResult {
           open.push(nIdx);
           inOpen[nIdx] = 1;
         } else {
-          // Обновлённая стоимость: повторно кладём в кучу (ленивое удаление).
           open.push(nIdx);
         }
       }
@@ -209,8 +189,6 @@ function reconstructPath(
     current = cameFrom[current];
   }
   nodes.reverse();
-  // Геометрическая длина пути (сумма евклидовых отрезков), не зависит от
-  // весовой стоимости поиска — для честного сравнения с A*.
   let length = 0;
   for (let i = 1; i < nodes.length; i++) {
     const dx = nodes[i].x - nodes[i - 1].x;

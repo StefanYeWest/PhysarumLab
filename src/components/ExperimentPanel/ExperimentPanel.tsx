@@ -1,7 +1,3 @@
-/**
- * ExperimentPanel — анализ маршрутов, динамические эксперименты и экспорт
- * данных (FR-080, FR-090, FR-100, FR-110, FR-111).
- */
 import styles from './ExperimentPanel.module.css';
 import type { SimulationActions, UiState } from '../../app/useSimulation';
 

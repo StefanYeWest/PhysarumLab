@@ -1,7 +1,3 @@
-/**
- * ParameterPanel — слайдеры параметров модели с подсказками и
- * переключатели визуальных слоёв (FR-050..053, FR-061, NFR-022/023).
- */
 import styles from './ParameterPanel.module.css';
 import type { SimulationActions, UiState } from '../../app/useSimulation';
 import { PARAM_META } from '../../config/defaultConfig';

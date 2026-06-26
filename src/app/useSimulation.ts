@@ -1,10 +1,3 @@
-/**
- * useSimulation — связующий хук между моделью (SimulationEngine) и UI.
- *
- * Владеет экземпляром движка и рендерера, запускает цикл
- * requestAnimationFrame, зеркалирует состояние модели в React-state для
- * перерисовки панелей и предоставляет действия для компонентов.
- */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SimulationEngine } from '../model/SimulationEngine';
 import {
@@ -20,7 +13,6 @@ import { PRESETS_BASE_PATH } from '../config/constants';
 import { parsePreset, metricsHistoryToCsv } from '../utils/serialization';
 import { downloadCsv, downloadJson } from '../utils/download';
 
-/** Инструменты редактирования карты (FR-030). */
 export type Tool =
   | 'view'
   | 'start'
@@ -78,7 +70,6 @@ export function useSimulation() {
     inspected: null,
   }));
 
-  /** Зеркалирует текущее состояние движка в React-state. */
   const syncUi = useCallback(
     (patch?: Partial<UiState>) => {
       setUi((prev) => ({
@@ -96,7 +87,6 @@ export function useSimulation() {
     [engine],
   );
 
-  // Цикл анимации: считает FPS, продвигает модель, перерисовывает.
   useEffect(() => {
     let lastTime = performance.now();
     let lastUiSync = 0;
@@ -136,7 +126,6 @@ export function useSimulation() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [engine, syncUi]);
 
-  /** Подключает Canvas-элемент и создаёт рендерер. */
   const attachCanvas = useCallback(
     (canvas: HTMLCanvasElement | null) => {
       if (!canvas) {
@@ -160,8 +149,6 @@ export function useSimulation() {
     },
     [],
   );
-
-  // --- Действия управления ---
 
   const start = useCallback(() => {
     engine.start();
@@ -189,7 +176,6 @@ export function useSimulation() {
     syncUi({ message: null, inspected: null });
   }, [engine, syncUi]);
 
-  /** Вернуть частицы в старт и перезапустить рост, сохранив карту и параметры. */
   const restartParticles = useCallback(() => {
     engine.restartParticles();
     syncUi({
@@ -209,8 +195,6 @@ export function useSimulation() {
     },
     [engine],
   );
-
-  // --- Preset ---
 
   const loadPresetById = useCallback(
     async (file: string, title: string) => {
@@ -284,8 +268,6 @@ export function useSimulation() {
     flashMessage('ok', 'Сценарий экспортирован в JSON.');
   }, [engine, ui.presetName, flashMessage]);
 
-  // --- Параметры ---
-
   const setParam = useCallback(
     (key: ConfigParamKey, value: number) => {
       if (key === 'particleCount') {
@@ -301,9 +283,6 @@ export function useSimulation() {
   );
 
   const resetParams = useCallback(() => {
-    // Сбрасываем параметры модели к значениям по умолчанию, но сохраняем
-    // геометрию текущего сценария (размер сетки и клетки), иначе мир и
-    // конфиг рассинхронизируются.
     const { gridWidth, gridHeight, cellSize } = engine.config;
     engine.applyLiveConfig({ ...DEFAULT_CONFIG, gridWidth, gridHeight, cellSize });
     engine.setSeed(DEFAULT_CONFIG.randomSeed);
@@ -311,14 +290,10 @@ export function useSimulation() {
     syncUi({ message: { kind: 'info', text: 'Параметры сброшены к значениям по умолчанию.' } });
   }, [engine, syncUi]);
 
-  // --- Слои ---
-
   const setLayer = useCallback((key: keyof LayerVisibility, value: boolean) => {
     layersRef.current = { ...layersRef.current, [key]: value };
     setUi((prev) => ({ ...prev, layers: { ...layersRef.current } }));
   }, []);
-
-  // --- Инструменты ---
 
   const setTool = useCallback((tool: Tool) => {
     setUi((prev) => ({ ...prev, tool }));
@@ -328,7 +303,6 @@ export function useSimulation() {
     setUi((prev) => ({ ...prev, brushSize }));
   }, []);
 
-  /** Применяет текущий инструмент в клетке карты (вызывается из Canvas). */
   const applyToolAt = useCallback(
     (cellX: number, cellY: number, toolOverride?: Tool) => {
       const tool = toolOverride ?? ui.tool;
@@ -375,8 +349,6 @@ export function useSimulation() {
     [engine, ui.tool, ui.brushSize, syncUi],
   );
 
-  // --- Источники питания ---
-
   const selectFood = useCallback(
     (id: string) => {
       engine.selectedFoodId = id;
@@ -400,8 +372,6 @@ export function useSimulation() {
     },
     [engine, syncUi],
   );
-
-  // --- Анализ ---
 
   const compareAStar = useCallback(() => {
     const food = engine.world.foodSources.find(
@@ -449,8 +419,6 @@ export function useSimulation() {
     syncUi();
   }, [engine, syncUi, flashMessage]);
 
-  // --- Очистка карты ---
-
   const clearWalls = useCallback(() => {
     engine.clearWalls();
     syncUi();
@@ -465,8 +433,6 @@ export function useSimulation() {
     engine.clearAll();
     syncUi();
   }, [engine, syncUi]);
-
-  // --- Экспорт данных ---
 
   const exportMetricsJson = useCallback(() => {
     downloadJson('physarum-metrics.json', engine.exportMetricsJson());
@@ -483,7 +449,6 @@ export function useSimulation() {
     flashMessage('ok', `Экспортировано ${history.length} строк в CSV.`);
   }, [engine, flashMessage]);
 
-  // Начальная загрузка выставочного сценария.
   useEffect(() => {
     void loadPresetById('exhibition-demo.json', 'Выставочная демонстрация');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -554,7 +519,6 @@ export function useSimulation() {
 export type SimulationActions = ReturnType<typeof useSimulation>['actions'];
 export type AttachCanvas = ReturnType<typeof useSimulation>['attachCanvas'];
 
-/** Восстанавливает список клеток-стен как 1x1 прямоугольники для экспорта. */
 function extractWalls(engine: SimulationEngine) {
   const walls: Array<{ x: number; y: number; width: number; height: number }> =
     [];

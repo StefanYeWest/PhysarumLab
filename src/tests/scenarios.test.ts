@@ -1,8 +1,3 @@
-/**
- * Сквозной дебаг всех сценариев работы движка: пресеты, инструменты карты,
- * эксперименты, изменение параметров, краевые случаи, экспорт и
- * детерминизм. Тесты не зависят от DOM/React.
- */
 import { describe, it, expect } from 'vitest';
 import { SimulationEngine } from '../model/SimulationEngine';
 import { PathAnalyzer } from '../model/PathAnalyzer';
@@ -52,9 +47,7 @@ describe('Пресеты: загрузка и валидность', () => {
       expect(engine.world.width).toBe(preset.config.gridWidth);
       expect(engine.world.height).toBe(preset.config.gridHeight);
       expect(engine.particles.length).toBe(preset.config.particleCount);
-      // Стартовая область и источники проставлены.
       expect(engine.world.startArea).toBeTruthy();
-      // 50 тиков без исключений и NaN в позициях.
       run(engine, 50);
       for (const p of engine.particles) {
         expect(Number.isFinite(p.x)).toBe(true);
@@ -76,10 +69,8 @@ describe('Пресеты: формирование сети и A*', () => {
       const engine = new SimulationEngine();
       engine.loadPreset(preset);
       const food = engine.world.foodSources[0];
-      // A* всегда должен находить путь в проходимом лабиринте.
       const aStar = engine.analyzer.buildAStarPath(engine.world, food, 8);
       expect(aStar.found).toBe(true);
-      // После прогона сеть формируется (хотя бы раз за 2500 тиков).
       let everConnected = false;
       for (let t = 0; t < 2500; t++) {
         engine.tick();
@@ -133,7 +124,6 @@ describe('Жизненный цикл: start/pause/step/reset', () => {
     engine.reset();
     expect(engine.tickNumber).toBe(0);
     expect(engine.getHistory().length).toBe(0);
-    // След очищен.
     let sum = 0;
     for (let i = 0; i < engine.world.trail.length; i++) sum += engine.world.trail[i];
     expect(sum).toBe(0);
@@ -176,7 +166,6 @@ describe('Инструменты карты', () => {
     const engine = new SimulationEngine();
     engine.loadPreset(loadPresetFromDisk('exhibition-demo.json'));
     const sa = engine.world.startArea;
-    // Рисуем стену поверх центра старта, затем стираем.
     engine.paintWall(sa.x, sa.y, 1, false);
     engine.paintWall(sa.x, sa.y, 1, true);
     expect(engine.world.getCellType(sa.x, sa.y)).toBe('start');
@@ -223,9 +212,7 @@ describe('Эксперименты: A*, извлечение, препятств
     const before = engine.world.countWalkableCells();
     const ok = engine.addObstacleOnRoute();
     expect(ok).toBe(true);
-    // Появились новые стены.
     expect(engine.world.countWalkableCells()).toBeLessThan(before);
-    // A* перестроен и по-прежнему существует (обход есть).
     expect(engine.aStarResult?.found).toBe(true);
   });
 
@@ -238,14 +225,11 @@ describe('Эксперименты: A*, извлечение, препятств
   it('сеть восстанавливается после динамического препятствия', () => {
     const engine = new SimulationEngine();
     engine.loadPreset(loadPresetFromDisk('dynamic-obstacle-demo.json'));
-    // Формируем сеть.
     engine.start();
     for (let i = 0; i < 1000; i++) engine.advance(1);
     engine.compareWithAStar();
     expect(engine.addObstacleOnRoute()).toBe(true);
-    // Сразу после препятствия сеть разорвана (след сброшен).
     expect(engine.getMetrics().connectedFoodCount).toBe(0);
-    // Даём время на переадаптацию (сеть отрастает в обход новой стены).
     let reconnected = false;
     for (let i = 0; i < 3000; i++) {
       engine.advance(1);
@@ -317,7 +301,6 @@ describe('Краевые случаи', () => {
     engine.clearAll();
     engine.setStartArea({ x: 20, y: 60, radius: 6 });
     const f = engine.addFoodSource(150, 60);
-    // Сплошная стена сверху донизу между стартом и едой.
     for (let y = 0; y < engine.world.height; y++) {
       engine.world.addWall(85, y);
     }
@@ -426,7 +409,6 @@ describe('Экспорт данных', () => {
     engine.clearAll();
     engine.paintWall(40, 40, 2, false);
     const wallCount = engine.world.countWalkableCells();
-    // Эмуляция extractWalls (1x1) и повторной загрузки.
     const walls: { x: number; y: number; width: number; height: number }[] = [];
     for (let y = 0; y < engine.world.height; y++) {
       for (let x = 0; x < engine.world.width; x++) {

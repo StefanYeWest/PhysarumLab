@@ -1,7 +1,3 @@
-/**
- * HowItWorks — модальный блок «Как это работает?» (FR-120..122, раздел 19.6).
- * Объясняет модель человеку, не знакомому с темой.
- */
 import styles from './HowItWorks.module.css';
 
 interface Props {

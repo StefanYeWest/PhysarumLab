@@ -1,10 +1,3 @@
-/**
- * SimulationEngine — главный класс управления симуляцией (раздел 6.2.1 ТЗ).
- *
- * Хранит мир, частицы и анализатор, управляет тиками, метриками,
- * сравнением с A*, извлечением маршрута Physarum, динамическими
- * препятствиями и экспортом данных. Не зависит от React.
- */
 import type { SimulationConfig, Neighborhood } from '../types/simulation';
 import type { FoodSource, StartArea } from '../types/grid';
 import type {
@@ -33,17 +26,14 @@ export class SimulationEngine {
   running = false;
   fps = 0;
 
-  /** Накопитель дробных тиков (для скоростей < 1x). */
   private tickAccumulator = 0;
 
   neighborhood: Neighborhood = 8;
 
-  // Текущие отображаемые маршруты (FR-083, FR-093).
   aStarResult: PathResult | null = null;
   physarumResult: PathResult | null = null;
   selectedFoodId: string | null = null;
 
-  // Состояние метрик во времени.
   private firstFoodFoundTick: number | null = null;
   private recoveryActive = false;
   private recoveryBroken = false;
@@ -54,7 +44,6 @@ export class SimulationEngine {
   private metrics: SimulationMetrics;
   private history: MetricsHistoryRow[] = [];
 
-  /** Сохранённый preset для корректного сброса. */
   private currentPreset: Preset | null = null;
 
   constructor(config: SimulationConfig = DEFAULT_CONFIG) {
@@ -67,8 +56,6 @@ export class SimulationEngine {
     this.world.refreshFoodCellTypes();
   }
 
-  // --- Управление жизненным циклом ---
-
   start(): void {
     this.running = true;
   }
@@ -77,14 +64,12 @@ export class SimulationEngine {
     this.running = false;
   }
 
-  /** Выполняет ровно один тик (FR-022). Пошаговый режим всегда на паузе. */
   step(): void {
     this.running = false;
     this.tick();
     this.updateMetrics(true);
   }
 
-  /** Полный сброс к исходному состоянию текущего сценария (FR-023). */
   reset(): void {
     if (this.currentPreset) {
       this.loadPreset(this.currentPreset);
@@ -93,12 +78,6 @@ export class SimulationEngine {
     }
   }
 
-  /**
-   * Перезапуск роста: возвращает все частицы в стартовую область и очищает
-   * след, но СОХРАНЯЕТ текущую карту (стены, еду, старт) и параметры. В отличие
-   * от reset(), не перезагружает сценарий и не стирает пользовательские правки.
-   * Состояние запуска (running) сохраняется. Воспроизводимо по seed.
-   */
   restartParticles(): void {
     this.rng = new SeededRandom(this.config.randomSeed);
     this.initParticles();
@@ -116,7 +95,6 @@ export class SimulationEngine {
     this.updateMetrics(true);
   }
 
-  /** Загрузка preset-сценария (FR-041). */
   loadPreset(preset: Preset): void {
     this.currentPreset = preset;
     this.config = { ...preset.config };
@@ -132,7 +110,6 @@ export class SimulationEngine {
     this.selectedFoodId = this.world.foodSources[0]?.id ?? null;
   }
 
-  /** Пересоздаёт мир и сбрасывает состояние под текущий config. */
   private rebuildWorld(): void {
     const start = this.world?.startArea;
     const foods = this.world?.foodSources;
@@ -159,7 +136,6 @@ export class SimulationEngine {
     this.initParticles();
   }
 
-  /** Создаёт частицы в стартовой области. */
   private initParticles(): void {
     const { particleCount, particleSpeed } = this.config;
     const start = this.world.startArea;
@@ -179,9 +155,6 @@ export class SimulationEngine {
     }
   }
 
-  // --- Основной цикл ---
-
-  /** Один тик модели (раздел 10.2). */
   tick(): void {
     const { world, config, particles, rng } = this;
 
@@ -209,15 +182,10 @@ export class SimulationEngine {
     this.tickNumber++;
   }
 
-  /**
-   * Продвигает симуляцию на dtTicks модельных тиков (учитывает скорость).
-   * Возвращает число выполненных тиков. Метрики обновляются с троттлингом.
-   */
   advance(speedMultiplier: number): number {
     if (!this.running) return 0;
     this.tickAccumulator += speedMultiplier;
     let executed = 0;
-    // Ограничение, чтобы не зависнуть при больших dt.
     const maxTicks = 8;
     while (this.tickAccumulator >= 1 && executed < maxTicks) {
       this.tick();
@@ -231,7 +199,6 @@ export class SimulationEngine {
     return executed;
   }
 
-  /** Отмечает тик первого достижения источника питания. */
   private detectFirstFood(): void {
     if (this.firstFoodFoundTick !== null) return;
     const foods = this.world.foodSources.filter((f) => f.enabled);
@@ -248,8 +215,6 @@ export class SimulationEngine {
     }
   }
 
-  // --- Метрики ---
-
   setFps(fps: number): void {
     this.fps = fps;
     this.metrics.fps = fps;
@@ -263,7 +228,6 @@ export class SimulationEngine {
     return this.history;
   }
 
-  /** Пересчёт метрик (тяжёлые части троттлятся вызывающим). */
   updateMetrics(force: boolean): void {
     const { world, config, analyzer } = this;
     const walkable = world.countWalkableCells();
@@ -275,10 +239,6 @@ export class SimulationEngine {
     const totalFood = world.foodSources.filter((f) => f.enabled).length;
     const connectedFood = analyzer.countConnectedFood(world, config);
 
-    // Проверка восстановления маршрута после препятствия (FR-103).
-    // Сначала дожидаемся фактического разрыва сети (connected = false),
-    // и только потом измеряем время до повторного соединения. Это
-    // исключает «нулевое» восстановление, когда сеть не была разорвана.
     if (this.recoveryActive && this.recoveryFoodId) {
       const food = world.foodSources.find((f) => f.id === this.recoveryFoodId);
       const connected = food
@@ -348,15 +308,11 @@ export class SimulationEngine {
       routeDeviationPercent: m.routeDeviationPercent,
       routeEfficiency: m.routeEfficiency,
     });
-    // Ограничиваем размер истории, чтобы не расти бесконечно.
     if (this.history.length > 5000) {
       this.history.splice(0, this.history.length - 5000);
     }
   }
 
-  // --- Сравнение с A* и извлечение маршрута ---
-
-  /** Сравнение с A* для выбранного источника (FR-080..085). */
   compareWithAStar(foodId?: string): PathResult {
     const food = this.resolveFood(foodId);
     if (!food) {
@@ -373,7 +329,6 @@ export class SimulationEngine {
     return this.aStarResult;
   }
 
-  /** Извлечение маршрута Physarum из карты следа (FR-090..094). */
   extractPhysarum(foodId?: string): PathResult {
     const food = this.resolveFood(foodId);
     if (!food) {
@@ -401,12 +356,6 @@ export class SimulationEngine {
     return enabled[0] ?? null;
   }
 
-  // --- Динамические эксперименты ---
-
-  /**
-   * Добавляет препятствие поперёк текущего маршрута и запускает измерение
-   * времени восстановления (FR-100..103).
-   */
   addObstacleOnRoute(): boolean {
     const route = this.physarumResult?.found
       ? this.physarumResult.nodes
@@ -420,7 +369,6 @@ export class SimulationEngine {
     const b = route[Math.min(route.length - 1, midIdx + 2)];
     const mid = route[midIdx];
 
-    // Направление вдоль маршрута и перпендикуляр к нему.
     const dirX = b.x - a.x;
     const dirY = b.y - a.y;
     const len = Math.hypot(dirX, dirY) || 1;
@@ -436,18 +384,12 @@ export class SimulationEngine {
         this.world.addWall(x, y);
       }
     }
-    // Стена могла перекрыть клетки старта/еды — восстановим их метки.
     this.world.refreshFoodCellTypes();
 
-    // Сбрасываем весь след: связность определяется по доле маршрута на следе,
-    // поэтому локальный разрыв не нарушил бы её (широкий след даёт мгновенный
-    // обход). Полный сброс делает замер восстановления осмысленным и
-    // наглядным — сеть отрастает заново уже в обход новой стены (FR-100..103).
     this.world.clearTrail();
 
     const food = this.resolveFood();
     if (food) {
-      // Перестраиваем A* (эталонный обход) и запускаем замер восстановления.
       this.aStarResult = this.analyzer.buildAStarPath(
         this.world,
         food,
@@ -471,15 +413,12 @@ export class SimulationEngine {
     return r.found ? r.nodes : null;
   }
 
-  // --- Редактирование карты из UI ---
-
   paintWall(cx: number, cy: number, brushRadius: number, erase: boolean): void {
     this.world.paintWall(cx, cy, brushRadius, erase);
   }
 
   setStartArea(area: StartArea): void {
     this.world.setStartArea(area);
-    // Частицы пересоздаются вокруг новой области (FR-033).
     this.initParticles();
   }
 
@@ -530,11 +469,6 @@ export class SimulationEngine {
     this.selectedFoodId = null;
   }
 
-  /**
-   * Применяет «живые» изменения конфигурации без сброса (FR-052).
-   * Параметры, требующие сброса (размер сетки, число частиц, seed),
-   * обрабатываются отдельно вызывающим кодом.
-   */
   applyLiveConfig(patch: Partial<SimulationConfig>): void {
     this.config = { ...this.config, ...patch };
     this.world.setTrailMaxValue(this.config.trailMaxValue);
@@ -543,15 +477,11 @@ export class SimulationEngine {
     }
   }
 
-  // --- Экспорт ---
-
-  /** Меняет число частиц с пересозданием массива (сохраняет карту и след). */
   setParticleCount(count: number): void {
     this.config.particleCount = count;
     this.initParticles();
   }
 
-  /** Меняет seed и переинициализирует генератор и частицы. */
   setSeed(seed: number): void {
     this.config.randomSeed = seed;
     this.rng = new SeededRandom(seed);
@@ -561,8 +491,6 @@ export class SimulationEngine {
   exportMetricsJson(): SimulationMetrics {
     return { ...this.metrics };
   }
-
-  // --- Вспомогательное ---
 
   private emptyResult(): PathResult {
     return {
